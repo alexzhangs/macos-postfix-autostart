@@ -9,6 +9,8 @@ EI Capitan intruduced a new feature, SIP (System Integrity
 Protection). It marks all files under /System as `restricted`, and no
 way to change them by user even with `sudo`.
 
+Tested on Mac OS X EI Capitan (10.11).
+
 ## Installation
 
 ```

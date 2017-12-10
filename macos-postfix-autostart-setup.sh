@@ -26,11 +26,27 @@ change_plist () {
            -x "$mark_begin" \
            -y "$mark_end"
 
-    #sed -i '' 's|<string>org.postfix.master</string>|<string>local.org.postfix.master</string>|' "$file"
+    #sed -i '' "s|<string>$service_name</string>|<string>local.$service_name</string>|" "$file"
 }
 
-src_file="/System/Library/LaunchDaemons/org.postfix.master.plist"
-dest_file="/Library/LaunchDaemons/local.org.postfix.master.plist"
+get_postfix_service_name () {
+    if launchctl list org.postfix.master >/dev/null 2>&1; then
+        echo org.postfix.master
+    elif launchctl list com.apple.postfix.master >/dev/null 2>&1; then
+        echo com.apple.postfix.master
+    else
+        return 255
+    fi
+}
+
+service_name=$(get_postfix_service_name)
+if [[ -z $service_name ]]; then
+    echo "Failed to get postfix service name"
+    exit 255
+fi
+
+src_file="/System/Library/LaunchDaemons/$service_name.plist"
+dest_file="/Library/LaunchDaemons/local.$service_name.plist"
 
 if [[ -f $src_file ]]; then
     if [[ -f $dest_file ]]; then
