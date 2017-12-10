@@ -7,11 +7,8 @@ trap 'clean_exit $?' 0 SIGHUP SIGINT SIGTERM
 set -o pipefail -e
 
 # Debug
-if [[ $DEBUG -gt 0 ]]; then
-    set -x
-else
-    set +x
-fi
+[[ $DEBUG -gt 0 ]] && set -x || set +x
+
 
 clean_exit () {
     if [[ -n ${CLEANERS[@]} ]]; then
@@ -27,6 +24,22 @@ array_append () {
         eval $arr_name[\${#$arr_name[@]}]=\$1
         shift
     done
+}
+
+is_mac () {
+    uname | grep -iq 'darwin'
+}
+
+sed_regx () {
+    is_mac && sed -E "$@" || sed -r "$@"
+}
+
+sed_inplace () {
+    is_mac && sed -i '' "$@" || sed -i "$@"
+}
+
+sed_regx_inplace () {
+    is_mac && sed -E -i '' "$@" || sed -r -i "$@"
 }
 
 usage () {
@@ -47,35 +60,36 @@ usage () {
     printf "\t-c CONTENT\n\n"
     printf "\tContent to inject.\n\n"
 
-    printf "\t-f FILE\n"
+    printf "\t-f FILE\n\n"
     printf "\tFile to inject to.\n\n"
 
-    printf "\t-p <begin|end|after|before>\n"
+    printf "\t-p <begin|end|after|before>\n\n"
     printf "\tWhere to inject in the FILE.\n\n"
 
-    printf "\t[-a REGEX]\n"
+    printf "\t[-a REGEX]\n\n"
     printf "\tUse together with '-p after'.\n\n"
 
-    printf "\t[-b REGEX]\n"
+    printf "\t[-b REGEX]\n\n"
     printf "\tUse together with '-p before'.\n\n"
 
-    printf "\t[-m MARK_BEGIN]\n"
+    printf "\t[-m MARK_BEGIN]\n\n"
     printf "\tUse together with -n.\n"
     printf "\tWith begin and end mark, injection can be run repeatly and safety.\n\n"
 
-    printf "\t[-n MARK_END]\n"
+    printf "\t[-n MARK_END]\n\n"
     printf "\tUse together with -m.\n"
     printf "\tWith begin and end mark, injection can be run repeatly and safety.\n\n"
 
-    printf "\t[-x REGEX_MARK_BEGIN]\n"
+    printf "\t[-x REGEX_MARK_BEGIN]\n\n"
     printf "\tUse together with -y.\n"
     printf "\tWith begin and end mark, injection can be run repeatly and safety.\n\n"
 
-    printf "\t[-y REGEX_MARK_END]\n"
+    printf "\t[-y REGEX_MARK_END]\n\n"
     printf "\tUse together with -x.\n"
     printf "\tWith begin and end mark, injection can be run repeatly and safety.\n\n"
 
-    printf "\t[-h]\n"
+    printf "\t[-h]\n\n"
+    printf "\tThis help.\n\n"
     exit 255
 }
 
@@ -142,13 +156,13 @@ array_append CLEANS "rm -f ${tmp_inj_file:?};"
 
 # Remove early injection if exists
 if [[ -n $regex_mark_begin && -n $regex_mark_end ]]; then
-    sed -i '' -E "/${regex_mark_begin:?}/,/${regex_mark_end:?}/d" "${tmp_file:?}"
+    sed_regx_inplace "/${regex_mark_begin:?}/,/${regex_mark_end:?}/d" "${tmp_file:?}"
 fi
 
 # Injecting
 case ${position:?} in
     begin)
-        sed -i '' "1{
+        sed_inplace "1{
 h
 r ${tmp_inj_file:?}
 g
@@ -156,13 +170,13 @@ N
 }" "${tmp_file:?}"
         ;;
     end)
-        sed -i '' "$ r ${tmp_inj_file:?}" "${tmp_file:?}"
+        sed_inplace "$ r ${tmp_inj_file:?}" "${tmp_file:?}"
         ;;
     after)
-        sed -i '' -E "/${regex_after:?}/ r ${tmp_inj_file:?}" "${tmp_file:?}"
+        sed_regx_inplace "/${regex_after:?}/ r ${tmp_inj_file:?}" "${tmp_file:?}"
         ;;
     before)
-        sed -i '' -E "/${regex_before:?}/{
+        sed_regx_inplace "/${regex_before:?}/{
 h
 r ${tmp_inj_file:?}
 g

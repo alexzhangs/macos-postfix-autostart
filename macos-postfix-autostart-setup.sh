@@ -18,13 +18,13 @@ change_plist () {
     local mark_begin="<!-- BEGIN: Run after user logged on -->"
     local mark_end="<!-- END: Run after user logged on -->"
     
-    inject_to_file -c "$config" -f "$file" \
-                   -p before \
-                   -b "^<\/dict>$" \
-                   -m "$mark_begin" \
-                   -n "$mark_end" \
-                   -x "$mark_begin" \
-                   -y "$mark_end"
+    inject -c "$config" -f "$file" \
+           -p before \
+           -b "^<\/dict>$" \
+           -m "$mark_begin" \
+           -n "$mark_end" \
+           -x "$mark_begin" \
+           -y "$mark_end"
 
     #sed -i '' 's|<string>org.postfix.master</string>|<string>local.org.postfix.master</string>|' "$file"
 }
